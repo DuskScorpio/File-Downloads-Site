@@ -183,14 +183,31 @@
       }
       .file-meta svg { width: 14px; height: 14px; }
 
+      .item-size {
+        font-size: 12px;
+        color: #999;
+        margin-right: 12px;
+      }
+
+      .last-commit-date {
+        position: fixed;
+        bottom: 10px;
+        right: 15px;
+        font-size: 11px;
+        color: var(--sub-text-color);
+        opacity: 0.7;
+        z-index: 999;
+      }
+
       /* Copy Button in List (Fixed: Always display, toggle opacity) */
       .list-copy-btn {
         padding: 6px;
         border-radius: 4px;
         color: var(--sub-text-color);
         display: flex;
-        opacity: 0;
-        transition: opacity 0.2s, background-color 0.2s;
+        transition:
+          opacity 0.2s,
+          background-color 0.2s;
         align-items: center;
         justify-content: center;
       }
@@ -325,7 +342,7 @@
           <svg style="width: 16px; height: 16px" viewBox="0 0 24 24" fill="currentColor">
             <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
           </svg>
-          Download ZIP
+          Download All
         </a>
       </div>
 
@@ -336,6 +353,9 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="toast">Link Copied!</div>
+
+    <!-- Last Commit Date -->
+    <div id="lastCommitDate" class="last-commit-date"></div>
 
     <!-- Modals -->
     <div class="modal-overlay" id="downloadOverlay" onclick="closeAllModals()"></div>
@@ -461,6 +481,41 @@
           console.error(e);
           container.innerHTML = `<div class="error">Failed: ${e.message}</div>`;
         }
+
+        // Fetch and display last commit date
+        fetchLastCommitDate();
+      }
+
+      // Helper: Format bytes to human-readable size
+      function formatFileSize(bytes) {
+        if (bytes === 0) return "0 B";
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+      }
+
+      // Helper: Fetch and display last commit date
+      async function fetchLastCommitDate() {
+        try {
+          const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits/${BRANCH}?per_page=1`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("Failed to fetch commit data");
+          const json = await res.json();
+          const commitDate = new Date(json.commit.committer.date);
+          const formattedDate = commitDate.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+          const formattedTime = commitDate.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          document.getElementById("lastCommitDate").textContent =
+            `Last updated: ${formattedDate} ${formattedTime}`;
+        } catch (e) {
+          console.error("Failed to fetch last commit date:", e);
+        }
       }
 
       function getSafeFullPath(path) {
@@ -558,6 +613,7 @@
               path: item.path,
               type: "file",
               displayPath: normalizePath(item.path),
+              size: item.size || 0,
             }));
         } else {
           if (currentPath) id("folderActions").style.display = "flex";
@@ -570,7 +626,12 @@
             const segments = relativePart.split("/");
 
             if (segments.length === 1 && item.type === "blob") {
-              itemsToShow.push({ name: segments[0], path: item.path, type: "file" });
+              itemsToShow.push({
+                name: segments[0],
+                path: item.path,
+                type: "file",
+                size: item.size || 0,
+              });
             } else if (segments.length > 1) {
               const folderName = segments[0];
               if (!processedFolders.has(folderName)) {
@@ -612,6 +673,7 @@
           div.innerHTML = `
                 ${item.type === "folder" ? ICONS.folder : ICONS.file}
                 <div class="item-name">${displayName}</div>
+                ${item.type === "file" ? `<div class="item-size">${formatFileSize(item.size)}</div>` : ""}
                 ${metaHtml}
                 <div class="list-copy-btn" title="Copy Link">
                     ${ICONS.link}
