@@ -8,8 +8,15 @@ export default async function handler(req, res) {
     const file = req.query.file || (req.body && req.body.file);
     
     // 获取环境变量
-    const KV_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-    const KV_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+    const KV_URL =
+        process.env.UPSTASH_REDIS_REST_URL ||
+        process.env.KV_REST_API_URL ||
+        process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
+    const KV_TOKEN =
+        process.env.UPSTASH_REDIS_REST_TOKEN ||
+        process.env.KV_REST_API_TOKEN ||
+        process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN ||
+        process.env.UPSTASH_REDIS_REST_KV_REST_API_READ_ONLY_TOKEN;
 
     if (!KV_URL || !KV_TOKEN) {
         console.error("Missing Database Environment Variables!");
