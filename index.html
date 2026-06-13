@@ -879,7 +879,9 @@
             : item.name;
 
           // Render Download Count
-          const count = downloadCounts[item.path] || 0;
+          const countKey =
+            item.type === "folder" ? getSafeFullPath(item.path) : item.path;
+          const count = downloadCounts[countKey] || 0;
           let metaHtml = "";
           if (item.type === "file" || count > 0) {
             metaHtml = `<div class="file-meta" title="${count} downloads">${ICONS.download} ${count}</div>`;
