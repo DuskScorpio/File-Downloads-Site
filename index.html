@@ -73,6 +73,29 @@
         margin: 0;
         font-size: 24px;
       }
+      .header-title {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+      }
+      .header-title-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--text-color);
+        cursor: pointer;
+        font: inherit;
+      }
+      .header-title-btn:hover h2 {
+        color: var(--primary-color);
+      }
+      .header-stat {
+        font-size: 12px;
+        color: var(--sub-text-color);
+        line-height: 1.2;
+        padding-bottom: 3px;
+        white-space: nowrap;
+      }
       .header-actions {
         display: flex;
         gap: 10px;
@@ -399,7 +422,12 @@
   <body>
     <div class="container">
       <div class="header">
-        <h2>Scorpio Downloads</h2>
+        <div class="header-title">
+          <button class="header-title-btn" onclick="navigateTo('')">
+            <h2>Scorpio Downloads</h2>
+          </button>
+          <div id="totalDownloadsStat" class="header-stat">Total file downloads: 0</div>
+        </div>
         <div class="header-actions">
           <!-- Custom Social Links -->
           <a
@@ -619,6 +647,18 @@
           id("moonIcon").style.display = "none";
         }
       }
+      function getTotalFileDownloads() {
+        return Object.entries(downloadCounts).reduce((sum, [path, count]) => {
+          if (!path.startsWith(BASE_DIR + "/")) return sum;
+          const relativePath = path.substring(BASE_DIR.length + 1);
+          if (!relativePath.includes(".")) return sum;
+          return sum + count;
+        }, 0);
+      }
+      function updateTotalDownloadsStat() {
+        id("totalDownloadsStat").textContent =
+          `Total file downloads: ${getTotalFileDownloads().toLocaleString()}`;
+      }
       window.toggleTheme = function () {
         const current =
           document.documentElement.getAttribute("data-theme") === "dark";
@@ -669,12 +709,14 @@
             );
             if (countRes.ok) {
               downloadCounts = await countRes.json();
+              updateTotalDownloadsStat();
             }
           } catch (err) {
             console.warn(
               "Failed to load download counts. Assuming 0 for all.",
               err,
             );
+            updateTotalDownloadsStat();
           }
 
           if (allFiles.length === 0) {
@@ -918,6 +960,7 @@
       window.trackDownload = function (itemPath) {
         // 1. 本地立即更新 UI，营造无延迟体验
         downloadCounts[itemPath] = (downloadCounts[itemPath] || 0) + 1;
+        updateTotalDownloadsStat();
         renderList(id("searchInput").value.trim());
 
         // 2. 发送 POST 请求，彻底防止浏览器缓存拦截
